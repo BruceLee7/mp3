@@ -17,16 +17,16 @@ router.get('/', async (req, res) => {
     const limit = req.query.limit ? parseInt(req.query.limit) : 100
     const count = req.query.count === 'true'
 
+    if (count) {
+      const c = await Task.countDocuments(where || {})
+      return res.json({ message: 'ok', data: c })
+    }
+
     let q = Task.find(where || {})
     if (sort) q = q.sort(sort)
     if (select) q = q.select(select)
     if (skip) q = q.skip(skip)
     if (limit) q = q.limit(limit)
-
-    if (count) {
-      const c = await Task.countDocuments(where || {})
-      return res.json({ message: 'ok', data: c })
-    }
 
     const list = await q.exec()
     res.json({ message: 'ok', data: list })
@@ -37,7 +37,8 @@ router.get('/', async (req, res) => {
 
 router.get('/:id', async (req, res) => {
   try {
-    const t = await Task.findById(req.params.id)
+    const pick = req.query.select ? JSON.parse(req.query.select) : undefined
+    const t = await Task.findById(req.params.id, pick)
     if (!t) return res.status(404).json({ message: 'not found', data: null })
     res.json({ message: 'ok', data: t })
   } catch {

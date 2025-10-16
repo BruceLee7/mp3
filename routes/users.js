@@ -5,24 +5,39 @@ const Task = require('../models/task')
 
 router.get('/', async (req, res) => {
   try {
-    const list = await User.find()
+    const safe = s => { if (!s) return undefined; try { return JSON.parse(s) } catch { return undefined } }
+    const where = safe(req.query.where)
+    const sort = safe(req.query.sort)
+    const select = safe(req.query.select)
+    const skip = req.query.skip ? parseInt(req.query.skip) : undefined
+    const limit = req.query.limit ? parseInt(req.query.limit) : undefined
+    const count = req.query.count === 'true'
+
+    if (count) {
+      const c = await User.countDocuments(where || {})
+      return res.json({ message: 'ok', data: c })
+    }
+
+    let q = User.find(where || {})
+    if (sort) q = q.sort(sort)
+    if (select) q = q.select(select)
+    if (skip) q = q.skip(skip)
+    if (limit) q = q.limit(limit)
+    const list = await q.exec()
     res.json({ message: 'ok', data: list })
-  } catch (e) {
-    res.status(500).json({ message: 'server error', data: null })
+  } catch {
+    res.status(400).json({ message: 'err', data: null })
   }
 })
 
 router.get('/:id', async (req, res) => {
   try {
-    const u = await User.findById(req.params.id)
+    const pick = req.query.select ? JSON.parse(req.query.select) : undefined
+    const u = await User.findById(req.params.id, pick)
     if (!u) return res.status(404).json({ message: 'not found', data: null })
     res.json({ message: 'ok', data: u })
-  } catch (e) {
-    if (e.name === 'CastError') {
-      res.status(400).json({ message: 'invalid id', data: null })
-    } else {
-      res.status(500).json({ message: 'server error', data: null })
-    }
+  } catch {
+    res.status(400).json({ message: 'err', data: null })
   }
 })
 
@@ -34,8 +49,8 @@ router.post('/', async (req, res) => {
     if (exists) return res.status(400).json({ message: 'duplicate', data: null })
     const u = await User.create(req.body)
     res.status(201).json({ message: 'ok', data: u })
-  } catch (e) {
-    res.status(500).json({ message: 'server error', data: null })
+  } catch {
+    res.status(400).json({ message: 'err', data: null })
   }
 })
 
@@ -45,10 +60,14 @@ router.put('/:id', async (req, res) => {
     if (!u) return res.status(404).json({ message: 'not found', data: null })
     const { name, email, pendingTasks } = req.body
     if (!name || !email) return res.status(400).json({ message: 'missing fields', data: null })
+    if (email !== u.email) {
+      const exists = await User.findOne({ email })
+      if (exists) return res.status(400).json({ message: 'duplicate', data: null })
+    }
     const old = u.pendingTasks
     u.name = name
     u.email = email
-    u.pendingTasks = pendingTasks || []
+    u.pendingTasks = Array.isArray(pendingTasks) ? pendingTasks : []
     await u.save()
     for (const id of old) {
       if (!u.pendingTasks.includes(id)) {
@@ -64,12 +83,8 @@ router.put('/:id', async (req, res) => {
       }
     }
     res.json({ message: 'ok', data: u })
-  } catch (e) {
-    if (e.name === 'CastError') {
-      res.status(400).json({ message: 'invalid id', data: null })
-    } else {
-      res.status(500).json({ message: 'server error', data: null })
-    }
+  } catch {
+    res.status(400).json({ message: 'err', data: null })
   }
 })
 
@@ -83,12 +98,8 @@ router.delete('/:id', async (req, res) => {
     )
     await User.findByIdAndDelete(req.params.id)
     res.json({ message: 'ok', data: null })
-  } catch (e) {
-    if (e.name === 'CastError') {
-      res.status(400).json({ message: 'invalid id', data: null })
-    } else {
-      res.status(500).json({ message: 'server error', data: null })
-    }
+  } catch {
+    res.status(400).json({ message: 'err', data: null })
   }
 })
 
