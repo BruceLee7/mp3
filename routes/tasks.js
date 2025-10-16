@@ -5,7 +5,30 @@ const User = require('../models/user')
 
 router.get('/', async (req, res) => {
   try {
-    const list = await Task.find()
+    const safe = s => {
+      if (!s) return undefined
+      try { return JSON.parse(s) } catch { return undefined }
+    }
+
+    const where = safe(req.query.where)
+    const sort = safe(req.query.sort)
+    const select = safe(req.query.select)
+    const skip = req.query.skip ? parseInt(req.query.skip) : undefined
+    const limit = req.query.limit ? parseInt(req.query.limit) : 100
+    const count = req.query.count === 'true'
+
+    let q = Task.find(where || {})
+    if (sort) q = q.sort(sort)
+    if (select) q = q.select(select)
+    if (skip) q = q.skip(skip)
+    if (limit) q = q.limit(limit)
+
+    if (count) {
+      const c = await Task.countDocuments(where || {})
+      return res.json({ message: 'ok', data: c })
+    }
+
+    const list = await q.exec()
     res.json({ message: 'ok', data: list })
   } catch {
     res.status(400).json({ message: 'err', data: null })
