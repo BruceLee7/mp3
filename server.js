@@ -1,37 +1,21 @@
-const express = require('express');
-const mongoose = require('mongoose');
-const bodyParser = require('body-parser');
-require('dotenv').config();
+const express = require('express')
+const bodyParser = require('body-parser')
+const mongoose = require('mongoose')
+require('dotenv').config()
 
-const app = express();
-const port = process.env.PORT || 3000;
-app.use(bodyParser.json());
+const app = express()
+app.use(bodyParser.json())
 
 mongoose.connect(process.env.MONGODB_URI, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true
-})
-.then(() => console.log('✅ MongoDB connected successfully'))
-.catch((err) => console.error('❌ MongoDB connection error:', err));
+  useNewUrlParser: true,
+  useUnifiedTopology: true
+}).then(() => console.log('db connected')).catch(err => console.log('db error', err))
 
-
-
-app.use((req, res, next) => {
-    res.header("Access-Control-Allow-Origin", "*");
-    res.header("Access-Control-Allow-Headers", "X-Requested-With, X-HTTP-Method-Override, Content-Type, Accept");
-    res.header("Access-Control-Allow-Methods", "POST, GET, PUT, DELETE, OPTIONS");
-    next();
-});
-
-app.use(bodyParser.urlencoded({ extended: true }));
-app.use(bodyParser.json());
-
-require('./routes')(app);
+require('./routes')(app)
 
 app.get('/', (req, res) => {
-    res.json({ message: 'Llama.io API alive!', data: null });
-});
+  res.json({ message: 'ok', data: null })
+})
 
-app.listen(port, () => {
-    console.log(`🚀 Server running on port ${port}`);
-});
+const port = process.env.PORT || 3000
+app.listen(port, () => console.log(`running on ${port}`))
