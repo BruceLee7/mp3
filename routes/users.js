@@ -7,8 +7,8 @@ router.get('/', async (req, res) => {
   try {
     const list = await User.find()
     res.json({ message: 'ok', data: list })
-  } catch {
-    res.status(400).json({ message: 'err', data: null })
+  } catch (e) {
+    res.status(500).json({ message: 'server error', data: null })
   }
 })
 
@@ -17,8 +17,12 @@ router.get('/:id', async (req, res) => {
     const u = await User.findById(req.params.id)
     if (!u) return res.status(404).json({ message: 'not found', data: null })
     res.json({ message: 'ok', data: u })
-  } catch {
-    res.status(400).json({ message: 'err', data: null })
+  } catch (e) {
+    if (e.name === 'CastError') {
+      res.status(400).json({ message: 'invalid id', data: null })
+    } else {
+      res.status(500).json({ message: 'server error', data: null })
+    }
   }
 })
 
@@ -30,8 +34,8 @@ router.post('/', async (req, res) => {
     if (exists) return res.status(400).json({ message: 'duplicate', data: null })
     const u = await User.create(req.body)
     res.status(201).json({ message: 'ok', data: u })
-  } catch {
-    res.status(400).json({ message: 'err', data: null })
+  } catch (e) {
+    res.status(500).json({ message: 'server error', data: null })
   }
 })
 
@@ -60,8 +64,12 @@ router.put('/:id', async (req, res) => {
       }
     }
     res.json({ message: 'ok', data: u })
-  } catch {
-    res.status(400).json({ message: 'err', data: null })
+  } catch (e) {
+    if (e.name === 'CastError') {
+      res.status(400).json({ message: 'invalid id', data: null })
+    } else {
+      res.status(500).json({ message: 'server error', data: null })
+    }
   }
 })
 
@@ -75,8 +83,12 @@ router.delete('/:id', async (req, res) => {
     )
     await User.findByIdAndDelete(req.params.id)
     res.json({ message: 'ok', data: null })
-  } catch {
-    res.status(400).json({ message: 'err', data: null })
+  } catch (e) {
+    if (e.name === 'CastError') {
+      res.status(400).json({ message: 'invalid id', data: null })
+    } else {
+      res.status(500).json({ message: 'server error', data: null })
+    }
   }
 })
 
